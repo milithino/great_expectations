@@ -1729,7 +1729,7 @@ def get_context(
             ge_cloud_access_token=ge_cloud_access_token,
             ge_cloud_organization_id=ge_cloud_organization_id,
         )
-        if not config_available:
+        if not config_available and ge_cloud_mode:
             raise Exception("GE Cloud Mode enabled, but no configuration found.")
         return CloudDataContext(
             project_config=project_config,
