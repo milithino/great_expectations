@@ -98,7 +98,6 @@ class GEDependencies:
             "pyspark",
             "pytest",
             "pytest-benchmark",
-            "pytest-azurepipelines",
             "pytest-cov",
             "pytest-mock",
             "pytest-icdiff",
@@ -117,6 +116,7 @@ class GEDependencies:
             "sqlalchemy-redshift",
             "teradatasqlalchemy",
             "xlrd",
+            "sqlalchemy-vertica-python",
         ]
     )
 
@@ -130,6 +130,7 @@ class GEDependencies:
         "pre-commit",
         "pytest-cov",
         "pytest-order",
+        "pytest-random-order",
         "pyupgrade",
         # requirements-dev-lite.txt:
         "flask",
@@ -152,9 +153,10 @@ class GEDependencies:
         "PyHive",
         "thrift",
         "thrift-sasl",
-        # requirements-dev-test-pipeline.txt:
-        "pytest-azurepipelines",
-        "pytest-random-order",
+        # requirements-dev-tools.txt
+        "jupyter",
+        "jupyterlab",
+        "matplotlib",
         # requirements-dev-all-contrib-expectations.txt
         "arxiv",
         "barcodenumber",
@@ -204,7 +206,7 @@ class GEDependencies:
         "zipcodes",
     ]
 
-    GE_DEV_DEPENDENCIES: List[str] = set(ALL_GE_DEV_DEPENDENCIES) - set(
+    GE_DEV_DEPENDENCIES: Set[str] = set(ALL_GE_DEV_DEPENDENCIES) - set(
         GE_DEV_DEPENDENCIES_EXCLUDED_FROM_TRACKING
     )
 
@@ -218,8 +220,8 @@ class GEDependencies:
         """Sorted list of required GE dependencies"""
         return self.GE_REQUIRED_DEPENDENCIES
 
-    def get_dev_dependency_names(self) -> List[str]:
-        """Sorted list of dev GE dependencies"""
+    def get_dev_dependency_names(self) -> Set[str]:
+        """Set of dev GE dependencies"""
         return self.GE_DEV_DEPENDENCIES
 
     def get_required_dependency_names_from_requirements_file(self) -> List[str]:

@@ -18,6 +18,8 @@ from great_expectations.rule_based_profiler.parameter_container import (
 )
 
 
+@pytest.mark.integration
+@pytest.mark.slow  # 1.08s
 def test_instantiation_value_set_multi_batch_parameter_builder(
     alice_columnar_table_single_batch_context,
 ):
@@ -32,6 +34,8 @@ def test_instantiation_value_set_multi_batch_parameter_builder(
     )
 
 
+@pytest.mark.integration
+@pytest.mark.slow  # 1.07s
 def test_instantiation_value_set_multi_batch_parameter_builder_no_name(
     alice_columnar_table_single_batch_context,
 ):
@@ -49,6 +53,8 @@ def test_instantiation_value_set_multi_batch_parameter_builder_no_name(
     )
 
 
+@pytest.mark.integration
+@pytest.mark.slow  # 1.19s
 def test_value_set_multi_batch_parameter_builder_alice_single_batch_numeric(
     alice_columnar_table_single_batch_context,
 ):
@@ -98,6 +104,7 @@ def test_value_set_multi_batch_parameter_builder_alice_single_batch_numeric(
     expected_parameter_value: dict = {
         "value": expected_value_set,
         "details": {
+            "parse_strings_as_datetimes": False,
             "metric_configuration": {
                 "domain_kwargs": {"column": "event_type"},
                 "metric_name": "column.distinct_values",
@@ -121,6 +128,8 @@ def test_value_set_multi_batch_parameter_builder_alice_single_batch_numeric(
     assert parameter_node.details == expected_parameter_value["details"]
 
 
+@pytest.mark.integration
+@pytest.mark.slow  # 1.20s
 def test_value_set_multi_batch_parameter_builder_alice_single_batch_string(
     alice_columnar_table_single_batch_context,
 ):
@@ -176,6 +185,7 @@ def test_value_set_multi_batch_parameter_builder_alice_single_batch_string(
     expected_parameter_value: dict = {
         "value": expected_value_set,
         "details": {
+            "parse_strings_as_datetimes": False,
             "metric_configuration": {
                 "domain_kwargs": {"column": "user_agent"},
                 "metric_name": "column.distinct_values",
@@ -199,6 +209,7 @@ def test_value_set_multi_batch_parameter_builder_alice_single_batch_string(
     assert parameter_node.details == expected_parameter_value["details"]
 
 
+@pytest.mark.integration
 def test_value_set_multi_batch_parameter_builder_bobby_numeric(
     bobby_columnar_table_multi_batch_deterministic_data_context,
 ):
@@ -251,6 +262,7 @@ def test_value_set_multi_batch_parameter_builder_bobby_numeric(
     expected_parameter_value: dict = {
         "value": expected_value_set,
         "details": {
+            "parse_strings_as_datetimes": False,
             "metric_configuration": {
                 "metric_name": "column.distinct_values",
                 "domain_kwargs": {"column": "passenger_count"},
@@ -276,6 +288,7 @@ def test_value_set_multi_batch_parameter_builder_bobby_numeric(
     assert parameter_node.details == expected_parameter_value["details"]
 
 
+@pytest.mark.integration
 def test_value_set_multi_batch_parameter_builder_bobby_string(
     bobby_columnar_table_multi_batch_deterministic_data_context,
 ):
@@ -328,6 +341,7 @@ def test_value_set_multi_batch_parameter_builder_bobby_string(
     expected_parameter_value: dict = {
         "value": expected_value_set,
         "details": {
+            "parse_strings_as_datetimes": False,
             "metric_configuration": {
                 "metric_name": "column.distinct_values",
                 "domain_kwargs": {"column": "store_and_fwd_flag"},
@@ -374,6 +388,7 @@ def test_value_set_multi_batch_parameter_builder_bobby_string(
         ],
     ],
 )
+@pytest.mark.unit
 def test__get_unique_values_from_nested_collection_of_sets(test_input, expected):
     """
     What does this test and why?

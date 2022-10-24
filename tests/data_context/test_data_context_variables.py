@@ -143,7 +143,9 @@ def cloud_data_context(
 
     cloud_data_context = CloudDataContext(
         project_config=data_context_config,
-        ge_cloud_config=ge_cloud_config_e2e,
+        ge_cloud_base_url=ge_cloud_config_e2e.base_url,
+        ge_cloud_access_token=ge_cloud_config_e2e.access_token,
+        ge_cloud_organization_id=ge_cloud_config_e2e.organization_id,
         context_root_dir=str(context_root_dir),
     )
     return cloud_data_context
@@ -277,6 +279,7 @@ def include_rendered_content() -> IncludeRenderedContentConfig:
         ),
     ],
 )
+@pytest.mark.slow  # 1.20s
 def test_data_context_variables_get(
     ephemeral_data_context_variables: EphemeralDataContextVariables,
     file_data_context_variables: FileDataContextVariables,
@@ -396,6 +399,7 @@ def test_data_context_variables_get_with_substitutions(
         ),
     ],
 )
+@pytest.mark.slow  # 1.20s
 def test_data_context_variables_set(
     ephemeral_data_context_variables: EphemeralDataContextVariables,
     file_data_context_variables: FileDataContextVariables,
@@ -424,7 +428,6 @@ def test_data_context_variables_save_config(
     ephemeral_data_context_variables: EphemeralDataContextVariables,
     file_data_context_variables: FileDataContextVariables,
     cloud_data_context_variables: CloudDataContextVariables,
-    shared_called_with_request_kwargs: dict,
     # The below GE Cloud variables were used to instantiate the above CloudDataContextVariables
     ge_cloud_base_url: str,
     ge_cloud_organization_id: str,
@@ -452,7 +455,7 @@ def test_data_context_variables_save_config(
         assert mock_save.call_count == 1
 
     # CloudDataContextVariables
-    with mock.patch("requests.put", autospec=True) as mock_put:
+    with mock.patch("requests.Session.put", autospec=True) as mock_put:
         type(mock_put.return_value).status_code = mock.PropertyMock(return_value=200)
 
         cloud_data_context_variables.save_config()
@@ -471,6 +474,7 @@ def test_data_context_variables_save_config(
 
         assert mock_put.call_count == 1
         mock_put.assert_called_with(
+            mock.ANY,  # requests.Session object
             f"{ge_cloud_base_url}/organizations/{ge_cloud_organization_id}/data-context-variables",
             json={
                 "data": {
@@ -481,7 +485,6 @@ def test_data_context_variables_save_config(
                     },
                 }
             },
-            **shared_called_with_request_kwargs,
         )
 
 
@@ -588,14 +591,13 @@ def test_cloud_data_context_variables_successfully_hits_cloud_endpoint(
     assert success is True
 
 
-@pytest.mark.xfail(
-    reason="GX Cloud E2E tests are currently failing due to env vars not being recognized by Docker; xfailing for purposes of the 0.15.20 release",
-    run=True,
-    strict=True,
-)
 @pytest.mark.e2e
 @pytest.mark.cloud
 @mock.patch("great_expectations.data_context.DataContext._save_project_config")
+@pytest.mark.xfail(
+    strict=False,
+    reason="GX Cloud E2E tests are failing due to env vars not being consistently recognized by Docker; x-failing for purposes of 0.15.22 release",
+)
 def test_cloud_enabled_data_context_variables_e2e(
     mock_save_project_config: mock.MagicMock, data_docs_sites: dict, monkeypatch
 ) -> None:

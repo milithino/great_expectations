@@ -33,14 +33,14 @@ from great_expectations.expectations.core.expect_column_value_z_scores_to_be_les
     ExpectColumnValueZScoresToBeLessThan,
 )
 from great_expectations.expectations.registry import get_expectation_impl
-from great_expectations.render.types import RenderedAtomicContent
+from great_expectations.render import RenderedAtomicContent
 from great_expectations.validator.exception_info import ExceptionInfo
 from great_expectations.validator.metric_configuration import MetricConfiguration
-from great_expectations.validator.validation_graph import ValidationGraph
-from great_expectations.validator.validator import (
+from great_expectations.validator.metrics_calculator import (
     MAX_METRIC_COMPUTATION_RETRIES,
-    Validator,
 )
+from great_expectations.validator.validation_graph import ValidationGraph
+from great_expectations.validator.validator import Validator
 
 
 @pytest.fixture()
@@ -131,6 +131,7 @@ def yellow_trip_pandas_data_context(
     return context
 
 
+@pytest.mark.integration
 def test_parse_validation_graph():
     df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, 6]})
     expectation_configuration = ExpectationConfiguration(
@@ -157,21 +158,20 @@ def test_parse_validation_graph():
         ).get_validation_dependencies(configuration, engine)
 
         for metric_configuration in validation_dependencies["metrics"].values():
-            Validator(execution_engine=engine).build_metric_dependency_graph(
+            Validator(
+                execution_engine=engine
+            ).metrics_calculator.build_metric_dependency_graph(
                 graph=graph,
-                execution_engine=engine,
                 metric_configuration=metric_configuration,
-                configuration=configuration,
             )
-    ready_metrics, needed_metrics = Validator(engine)._parse_validation_graph(
-        validation_graph=graph, metrics=dict()
-    )
+
+    ready_metrics, needed_metrics = graph.parse(metrics=dict())
     assert len(ready_metrics) == 2 and len(needed_metrics) == 9
 
 
 # Should be passing tests even if given incorrect MetricProvider data
+@pytest.mark.integration
 def test_parse_validation_graph_with_bad_metrics_args():
-    df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, 6]})
     expectation_configuration = ExpectationConfiguration(
         expectation_type="expect_column_value_z_scores_to_be_less_than",
         kwargs={
@@ -196,18 +196,17 @@ def test_parse_validation_graph_with_bad_metrics_args():
         )
 
         for metric_configuration in validation_dependencies["metrics"].values():
-            validator.build_metric_dependency_graph(
+            validator.metrics_calculator.build_metric_dependency_graph(
                 graph=graph,
-                execution_engine=engine,
                 metric_configuration=metric_configuration,
-                configuration=configuration,
             )
-    ready_metrics, needed_metrics = validator._parse_validation_graph(
-        validation_graph=graph, metrics=("nonexistent", "NONE")
-    )
+
+    # noinspection PyTypeChecker
+    ready_metrics, needed_metrics = graph.parse(metrics=("nonexistent", "NONE"))
     assert len(ready_metrics) == 2 and len(needed_metrics) == 9
 
 
+@pytest.mark.integration
 def test_populate_dependencies():
     df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, 6]})
     expectation_configuration = ExpectationConfiguration(
@@ -237,15 +236,17 @@ def test_populate_dependencies():
         )
 
         for metric_configuration in validation_dependencies["metrics"].values():
-            Validator(execution_engine=engine).build_metric_dependency_graph(
+            Validator(
+                execution_engine=engine
+            ).metrics_calculator.build_metric_dependency_graph(
                 graph=graph,
-                execution_engine=engine,
                 metric_configuration=metric_configuration,
-                configuration=configuration,
             )
+
     assert len(graph.edges) == 33
 
 
+@pytest.mark.integration
 def test_populate_dependencies_with_incorrect_metric_name():
     df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, 6]})
     expectation_configuration = ExpectationConfiguration(
@@ -275,13 +276,13 @@ def test_populate_dependencies_with_incorrect_metric_name():
         )
 
         try:
-            Validator(execution_engine=engine).build_metric_dependency_graph(
+            Validator(
+                execution_engine=engine
+            ).metrics_calculator.build_metric_dependency_graph(
                 graph=graph,
-                execution_engine=engine,
                 metric_configuration=MetricConfiguration(
                     "column_values.not_a_metric", IDDict()
                 ),
-                configuration=configuration,
             )
         except ge_exceptions.MetricProviderError as e:
             graph = e
@@ -289,6 +290,7 @@ def test_populate_dependencies_with_incorrect_metric_name():
     assert isinstance(graph, ge_exceptions.MetricProviderError)
 
 
+@pytest.mark.integration
 def test_graph_validate(basic_datasource):
     df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, None]})
 
@@ -341,6 +343,7 @@ def test_graph_validate(basic_datasource):
     ]
 
 
+@pytest.mark.integration
 def test_graph_validate_with_exception(basic_datasource):
     def mock_error(*args, **kwargs):
         raise Exception("Mock Error")
@@ -376,7 +379,7 @@ def test_graph_validate_with_exception(basic_datasource):
     )
 
     validator = Validator(execution_engine=PandasExecutionEngine(), batches=[batch])
-    validator.build_metric_dependency_graph = mock_error
+    validator.metrics_calculator.build_metric_dependency_graph = mock_error
 
     result = validator.graph_validate(configurations=[expectation_configuration])
 
@@ -384,6 +387,7 @@ def test_graph_validate_with_exception(basic_datasource):
     assert result[0].expectation_config is not None
 
 
+@pytest.mark.integration
 def test_graph_validate_with_bad_config_catch_exceptions_false(basic_datasource):
     df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, None]})
 
@@ -426,6 +430,7 @@ def test_graph_validate_with_bad_config_catch_exceptions_false(basic_datasource)
     )
 
 
+@pytest.mark.integration
 def test_resolve_validation_graph_with_bad_config_catch_exceptions_true(
     basic_datasource,
 ):
@@ -471,11 +476,9 @@ def test_resolve_validation_graph_with_bad_config_catch_exceptions_true(
     graph = ValidationGraph()
 
     for metric_configuration in validation_dependencies.values():
-        validator.build_metric_dependency_graph(
+        validator.metrics_calculator.build_metric_dependency_graph(
             graph=graph,
-            execution_engine=execution_engine,
             metric_configuration=metric_configuration,
-            configuration=expectation_configuration,
             runtime_configuration=runtime_configuration,
         )
 
@@ -483,7 +486,7 @@ def test_resolve_validation_graph_with_bad_config_catch_exceptions_true(
     aborted_metrics_info: Dict[
         Tuple[str, str, str],
         Dict[str, Union[MetricConfiguration, Set[ExceptionInfo], int]],
-    ] = validator.resolve_validation_graph(
+    ] = validator.metrics_calculator.resolve_validation_graph(
         graph=graph,
         metrics=metrics,
         runtime_configuration=runtime_configuration,
@@ -504,6 +507,7 @@ def test_resolve_validation_graph_with_bad_config_catch_exceptions_true(
 
 
 # Tests that runtime configuration actually works during graph validation
+@pytest.mark.integration
 def test_graph_validate_with_runtime_config(basic_datasource):
     df = pd.DataFrame(
         {"a": [1, 5, 22, 3, 5, 10, 2, 3], "b": [97, 332, 3, 4, 5, 6, 7, None]}
@@ -573,6 +577,7 @@ def test_graph_validate_with_runtime_config(basic_datasource):
     ]
 
 
+@pytest.mark.integration
 def test_validator_default_expectation_args__pandas(basic_datasource):
     df = pd.DataFrame({"a": [1, 5, 22, 3, 5, 10], "b": [1, 2, 3, 4, 5, None]})
 
@@ -599,6 +604,7 @@ def test_validator_default_expectation_args__pandas(basic_datasource):
     print(my_validator.get_default_expectation_arguments())
 
 
+@pytest.mark.integration
 def test_validator_default_expectation_args__sql(
     data_context_with_simple_sql_datasource_for_testing_get_batch,
 ):
@@ -637,6 +643,7 @@ def test_validator_default_expectation_args__sql(
         )
 
 
+@pytest.mark.integration
 def test_columns(
     titanic_pandas_data_context_with_v013_datasource_stats_enabled_with_checkpoints_v1_with_templates,
 ):
@@ -664,6 +671,7 @@ def test_columns(
     assert columns == expected
 
 
+@pytest.mark.integration
 def test_head(
     titanic_pandas_data_context_with_v013_datasource_stats_enabled_with_checkpoints_v1_with_templates,
 ):
@@ -759,7 +767,6 @@ def multi_batch_taxi_validator_ge_cloud_mode(
     return validator_multi_batch
 
 
-@pytest.mark.cloud
 @mock.patch(
     "great_expectations.data_context.data_context.BaseDataContext.save_expectation_suite"
 )
@@ -769,6 +776,8 @@ def multi_batch_taxi_validator_ge_cloud_mode(
 @mock.patch(
     "great_expectations.core.usage_statistics.usage_statistics.UsageStatisticsHandler.emit"
 )
+@pytest.mark.cloud
+@pytest.mark.integration
 def test_ge_cloud_validator_updates_self_suite_with_ge_cloud_ids_on_save(
     mock_emit,
     mock_context_get_suite,
@@ -818,6 +827,7 @@ def test_ge_cloud_validator_updates_self_suite_with_ge_cloud_ids_on_save(
     assert mock_emit.call_args_list == []
 
 
+@pytest.mark.integration
 def test_validator_can_instantiate_with_a_multi_batch_request(
     multi_batch_taxi_validator,
 ):
@@ -839,6 +849,7 @@ def test_validator_can_instantiate_with_a_multi_batch_request(
     ]
 
 
+@pytest.mark.integration
 def test_validator_with_bad_batchrequest(
     yellow_trip_pandas_data_context,
 ):
@@ -858,6 +869,7 @@ def test_validator_with_bad_batchrequest(
         )
 
 
+@pytest.mark.integration
 def test_validator_batch_filter(
     multi_batch_taxi_validator,
 ):
@@ -947,6 +959,7 @@ def test_validator_batch_filter(
     )
 
 
+@pytest.mark.integration
 def test_custom_filter_function(
     multi_batch_taxi_validator,
 ):
@@ -979,6 +992,7 @@ def test_custom_filter_function(
 @mock.patch(
     "great_expectations.core.usage_statistics.usage_statistics.UsageStatisticsHandler.emit"
 )
+@pytest.mark.integration
 def test_adding_expectation_to_validator_not_send_usage_message(
     mock_emit, multi_batch_taxi_validator
 ):
@@ -997,34 +1011,7 @@ def test_adding_expectation_to_validator_not_send_usage_message(
     assert mock_emit.call_args_list == []
 
 
-def test_validator_set_active_batch(
-    multi_batch_taxi_validator,
-):
-    jan_min_date = "2019-01-01"
-    mar_min_date = "2019-03-01"
-    assert (
-        multi_batch_taxi_validator.active_batch_id == "90bb41c1fbd7c71c05dbc8695320af71"
-    )
-    with pytest.deprecated_call():  # parse_strings_as_datetimes is deprecated in V3
-        assert multi_batch_taxi_validator.expect_column_values_to_be_between(
-            "pickup_datetime", min_value=mar_min_date, parse_strings_as_datetimes=True
-        ).success
-
-    multi_batch_taxi_validator.active_batch_id = "0327cfb13205ec8512e1c28e438ab43b"
-
-    assert (
-        multi_batch_taxi_validator.active_batch_id == "0327cfb13205ec8512e1c28e438ab43b"
-    )
-    with pytest.deprecated_call():  # parse_strings_as_datetimes is deprecated in V3
-        assert not multi_batch_taxi_validator.expect_column_values_to_be_between(
-            "pickup_datetime", min_value=mar_min_date, parse_strings_as_datetimes=True
-        ).success
-    with pytest.deprecated_call():  # parse_strings_as_datetimes is deprecated in V3
-        assert multi_batch_taxi_validator.expect_column_values_to_be_between(
-            "pickup_datetime", min_value=jan_min_date, parse_strings_as_datetimes=True
-        ).success
-
-
+@pytest.mark.integration
 def test_validator_load_additional_batch_to_validator(
     yellow_trip_pandas_data_context,
 ):
@@ -1073,6 +1060,7 @@ def test_validator_load_additional_batch_to_validator(
     assert first_batch_markers != updated_batch_markers
 
 
+@pytest.mark.integration
 def test_instantiate_validator_with_a_list_of_batch_requests(
     yellow_trip_pandas_data_context,
 ):
@@ -1126,11 +1114,13 @@ def test_instantiate_validator_with_a_list_of_batch_requests(
             batch_request_list=[jan_batch_request, feb_batch_request],
             expectation_suite=suite,
         )
+
     assert ve.value.args == (
         "No more than one of batch, batch_list, batch_request, or batch_request_list can be specified",
     )
 
 
+@pytest.mark.integration
 def test_validate_expectation(multi_batch_taxi_validator):
     validator: Validator = multi_batch_taxi_validator
     expect_column_values_to_be_between_config = validator.validate_expectation(
@@ -1156,7 +1146,8 @@ def test_validate_expectation(multi_batch_taxi_validator):
 
 @mock.patch("great_expectations.data_context.data_context.DataContext")
 @mock.patch("great_expectations.validator.validation_graph.ValidationGraph")
-@mock.patch("great_expectations.validator.validator.tqdm")
+@mock.patch("great_expectations.validator.metrics_calculator.tqdm")
+@pytest.mark.unit
 def test_validator_progress_bar_config_enabled(
     mock_tqdm, mock_validation_graph, mock_data_context
 ):
@@ -1166,7 +1157,13 @@ def test_validator_progress_bar_config_enabled(
 
     # ValidationGraph is a complex object that requires len > 3 to not trigger tqdm
     mock_validation_graph.edges.__len__ = lambda _: 3
-    validator.resolve_validation_graph(mock_validation_graph, {})
+    mock_validation_graph.parse.return_value = (
+        {},
+        {},
+    )
+    validator.metrics_calculator.resolve_validation_graph(
+        graph=mock_validation_graph, metrics={}
+    )
 
     # Still invoked but doesn't actually do anything due to `disabled`
     assert mock_tqdm.called is True
@@ -1175,7 +1172,8 @@ def test_validator_progress_bar_config_enabled(
 
 @mock.patch("great_expectations.data_context.data_context.DataContext")
 @mock.patch("great_expectations.validator.validation_graph.ValidationGraph")
-@mock.patch("great_expectations.validator.validator.tqdm")
+@mock.patch("great_expectations.validator.metrics_calculator.tqdm")
+@pytest.mark.unit
 def test_validator_progress_bar_config_disabled(
     mock_tqdm, mock_validation_graph, mock_data_context
 ):
@@ -1186,12 +1184,19 @@ def test_validator_progress_bar_config_disabled(
 
     # ValidationGraph is a complex object that requires len > 3 to not trigger tqdm
     mock_validation_graph.edges.__len__ = lambda _: 3
-    validator.resolve_validation_graph(mock_validation_graph, {})
+    mock_validation_graph.parse.return_value = (
+        {},
+        {},
+    )
+    validator.metrics_calculator.resolve_validation_graph(
+        graph=mock_validation_graph, metrics={}, show_progress_bars=False
+    )
 
     assert mock_tqdm.called is True
     assert mock_tqdm.call_args[1]["disable"] is True
 
 
+@pytest.mark.integration
 def test_validator_docstrings(multi_batch_taxi_validator):
     expectation_impl = getattr(
         multi_batch_taxi_validator, "expect_column_values_to_be_in_set", None
@@ -1201,6 +1206,7 @@ def test_validator_docstrings(multi_batch_taxi_validator):
     )
 
 
+@pytest.mark.integration
 def test_validator_include_rendered_content(
     yellow_trip_pandas_data_context,
 ):
@@ -1250,6 +1256,7 @@ def test_validator_include_rendered_content(
     assert isinstance(validation_result.rendered_content[0], RenderedAtomicContent)
 
 
+@pytest.mark.integration
 def test_validator_include_rendered_content_evaluation_parameters(
     yellow_trip_pandas_data_context,
 ):
@@ -1298,3 +1305,76 @@ def test_validator_include_rendered_content_evaluation_parameters(
         ]
         == 8000
     )
+
+
+@pytest.fixture
+def validator_with_mock_execution_engine() -> Validator:
+    execution_engine = mock.MagicMock()
+    validator = Validator(execution_engine=execution_engine)
+    return validator
+
+
+@pytest.mark.unit
+def test___dir___contains_expectation_impls(
+    validator_with_mock_execution_engine: Validator,
+) -> None:
+    validator = validator_with_mock_execution_engine
+
+    attrs = validator.__dir__()
+    expectation_impls = list(filter(lambda a: a.startswith("expect_"), attrs))
+    assert len(expectation_impls) > 0
+
+
+@pytest.mark.unit
+def test_show_progress_bars_property_and_setter(
+    validator_with_mock_execution_engine: Validator,
+) -> None:
+    validator = validator_with_mock_execution_engine
+
+    assert validator.metrics_calculator.show_progress_bars is True
+    validator.metrics_calculator.show_progress_bars = False
+    assert validator.metrics_calculator.show_progress_bars is False
+
+
+@pytest.mark.unit
+def test_expose_dataframe_methods_property_and_setter(
+    validator_with_mock_execution_engine: Validator,
+) -> None:
+    validator = validator_with_mock_execution_engine
+
+    assert validator.expose_dataframe_methods is False
+    validator.expose_dataframe_methods = True
+    assert validator.expose_dataframe_methods is True
+
+
+@pytest.mark.unit
+def test___get_attr___retrieves_existing_expectation(
+    validator_with_mock_execution_engine: Validator,
+) -> None:
+    validator = validator_with_mock_execution_engine
+
+    # Does not raise error if properly registered
+    # Avoiding invocation to only test registration (and not actual expectation)
+    validator.expect_column_max_to_be_between
+
+
+@pytest.mark.unit
+def test__get_attr___raises_attribute_error_with_invalid_attr(
+    validator_with_mock_execution_engine: Validator,
+) -> None:
+    validator = validator_with_mock_execution_engine
+
+    with pytest.raises(AttributeError) as e:
+        validator.my_fake_attr
+
+    assert "'Validator'  object has no attribute 'my_fake_attr'" in str(e.value)
+
+
+@pytest.mark.unit
+def test_list_available_expectation_types(
+    validator_with_mock_execution_engine: Validator,
+) -> None:
+    validator = validator_with_mock_execution_engine
+
+    available = validator.list_available_expectation_types()
+    assert all(e.startswith("expect_") for e in available)
