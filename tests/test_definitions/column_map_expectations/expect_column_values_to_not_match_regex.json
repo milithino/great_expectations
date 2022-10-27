@@ -11,6 +11,11 @@
         "a": "StringType",
         "b": "StringType",
         "c": "StringType"
+      },
+      "snowflake":{
+        "a": "STRING",
+        "b": "STRING",
+        "c": "STRING"
       }
     },
     "tests": [
@@ -83,7 +88,7 @@
         "column": "b",
         "regex": "^c"
       },
-      "out": {
+      "ou": {
         "success":true,
         "unexpected_index_list": [],
         "unexpected_list": []

@@ -51,6 +51,7 @@ from great_expectations.core.util import (
 # from great_expectations.data_context.data_context import DataContext
 from great_expectations.dataset import PandasDataset, SparkDFDataset, SqlAlchemyDataset
 from great_expectations.exceptions.exceptions import (
+    GreatExpectationsError,
     InvalidExpectationConfigurationError,
     MetricProviderError,
     MetricResolutionError,
@@ -1212,7 +1213,8 @@ def get_test_validator_with_data(  # noqa: C901 - 31
     context: Optional["DataContext"] = None,  # noqa: F821
 ):
     """Utility to create datasets for json-formatted tests."""
-
+    # print("hello")
+    # raise Exception(f"hello: {schemas}")
     df = pd.DataFrame(data)
     if execution_engine == "pandas":
         if schemas and "pandas" in schemas:
@@ -1490,6 +1492,8 @@ def build_sa_validator_with_data(  # noqa: C901 - 39
         engine = _create_athena_engine()
     elif sa_engine_name == "snowflake":
         engine = _create_snowflake_engine()
+        # i think this is the issue. Maybe we aren't passing in the schema correctly?
+        # raise GreatExpectationsError(f"hello:{schemas}")
     else:
         engine = None
 
@@ -1555,6 +1559,9 @@ def build_sa_validator_with_data(  # noqa: C901 - 39
 
     _debug("Calling df.to_sql")
     _start = time.time()
+    # this is where the error is happening
+    # print("hello")
+    # raise GreatExpectationsError(sql_dtypes)
     df.to_sql(
         name=table_name,
         con=engine,
