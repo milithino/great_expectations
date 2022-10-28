@@ -33,7 +33,7 @@
         "unexpected_index_list": [0, 1, 2, 3],
         "unexpected_list": ["aaa", "abb", "acc", "add"]
       },
-      "suppress_test_for": ["sqlite", "mssql"]
+      "suppress_test_for": ["sqlite", "mssql", "snowflake"]
     },
     {
       "title": "positive_test_exact_mostly_w_one_non_matching_value",
@@ -49,7 +49,7 @@
         "unexpected_index_list": [0, 1, 2, 3],
         "unexpected_list": ["aaa", "abb", "acc", "add"]
       },
-      "suppress_test_for": ["sqlite", "mssql"]
+      "suppress_test_for": ["sqlite", "mssql", "snowflake"]
     },
     {
       "title": "positive_test_sufficient_mostly_w_one_non_matching_value",
@@ -64,7 +64,7 @@
         "unexpected_index_list": [0, 1, 2, 3],
         "unexpected_list": ["aaa", "abb", "acc", "add"]
       },
-      "suppress_test_for": ["sqlite", "mssql"]
+      "suppress_test_for": ["sqlite", "mssql", "snowflake"]
     },
     {
       "title": "negative_test_one_missing_value_and_insufficent_mostly",
@@ -79,7 +79,7 @@
         "unexpected_index_list": [0, 1, 2],
         "unexpected_list": ["aaa", "abb", "acc"]
       },
-      "suppress_test_for": ["sqlite", "mssql"]
+      "suppress_test_for": ["sqlite", "mssql", "snowflake"]
     },
     {
       "title": "positive_test_one_missing_value_no_exceptions",
@@ -88,12 +88,12 @@
         "column": "b",
         "regex": "^c"
       },
-      "ou": {
+      "out": {
         "success":true,
         "unexpected_index_list": [],
         "unexpected_list": []
       },
-      "suppress_test_for": ["sqlite", "mssql"]
+      "suppress_test_for": ["sqlite", "mssql", "snowflake"]
     },
     {
       "title": "positive_test_all_missing_values",
@@ -136,7 +136,7 @@
         "unexpected_index_list": [0, 1, 2, 3],
         "unexpected_list": ["aaa", "abb", "acc", "bdd"]
       },
-      "suppress_test_for": ["sqlite", "mysql", "mssql"]
+      "suppress_test_for": ["sqlite", "mysql", "mssql", "snowflake"]
     },
     {
       "title": "negative_test_match_characters_not_at_the_beginning_of_string_exact_mostly",
@@ -151,7 +151,7 @@
         "unexpected_index_list": [1, 4],
         "unexpected_list": ["abb", "bee"]
       },
-      "suppress_test_for": ["sqlite", "mssql"]
+      "suppress_test_for": ["sqlite", "mssql", "snowflake"]
     }]
   }]
 }

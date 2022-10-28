@@ -19,6 +19,7 @@ from great_expectations.self_check.util import (
     mssqlDialect,
     mysqlDialect,
     postgresqlDialect,
+    snowflakeDialect,
     sqliteDialect,
     trinoDialect,
 )
@@ -179,6 +180,17 @@ def pytest_generate_tests(metafunc):
                                     == "trino"
                                 ):
                                     generate_test = True
+                                elif (
+                                    "snowflake" in test["only_for"]
+                                    and snowflakeDialect is not None
+                                    and hasattr(
+                                        validator_with_data.active_batch_data.sql_engine_dialect,
+                                        "name",
+                                    )
+                                    and validator_with_data.active_batch_data.sql_engine_dialect.name
+                                    == "snowflake"
+                                ):
+                                    generate_test = True
 
                             elif validator_with_data and isinstance(
                                 validator_with_data.active_batch_data,
@@ -337,6 +349,21 @@ def pytest_generate_tests(metafunc):
                                         validator_with_data.active_batch_data,
                                         SparkDFBatchData,
                                     )
+                                )
+                                or (
+                                    "snowflake" in suppress_test_for
+                                    and snowflakeDialect is not None
+                                    and validator_with_data
+                                    and isinstance(
+                                        validator_with_data.active_batch_data,
+                                        SqlAlchemyBatchData,
+                                    )
+                                    and hasattr(
+                                        validator_with_data.active_batch_data.sql_engine_dialect,
+                                        "name",
+                                    )
+                                    and validator_with_data.active_batch_data.sql_engine_dialect.name
+                                    == "snowflake"
                                 )
                             ):
                                 skip_test = True
